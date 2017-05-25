@@ -15,6 +15,8 @@ public class ControlPresenter {
 
     private boolean isBluetoothConnected = false;
 
+    private Difficulty difficulty;
+
     public ControlPresenter() {
         this.foregroundExecutor = new ForegroundExecutor();
         this.backgroundExecutor = new BackgroundExecutor();
@@ -28,7 +30,7 @@ public class ControlPresenter {
         foregroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                view.toggleLoading(true);
+                //view.toggleLoading(true);
             }
         });
         backgroundExecutor.execute(new Runnable() {
@@ -39,9 +41,12 @@ public class ControlPresenter {
                     public void complete(boolean status) {
                         ControlPresenter.this.isBluetoothConnected = status;
                         if(status) {
-                            updateMsg("Connected!");
+                            queueViewStatusForDuration("Connected!!", 1500);
+                            queueViewStatusForDuration("Select a game mode!", 5000);
+                            toggleViewLoading(false);
+                            toggleViewDifficultySelect(true);
                         } else {
-                            //TODO Handle error
+                            updateViewMsg("Error!!!");
                         }
                     }
                 });
@@ -57,12 +62,67 @@ public class ControlPresenter {
         return isBluetoothConnected;
     }
 
-    private void updateMsg(final String msg) {
+    public void setDifficulty(Difficulty difficulty) {
+        this.difficulty = difficulty;
+        toggleViewDifficultySelect(false);
+        queueViewStatusForDuration("Ready?!?!", 1000);
+        queueViewStatusForDuration("Set", 500, new StatusMessage.OnDoneShowingListener() {
+            @Override
+            public void done() {
+                //Start playing
+            }
+        });
+        queueViewStatusForDuration("Go!", 200);
+    }
+
+    public void onTimerFinished() {
+
+    }
+
+    public void disconnect() {
+        this.isBluetoothConnected = false;
+    }
+
+    private void updateViewMsg(final String msg) {
         foregroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                view.toggleStatus(true);
+                view.toggleMsgStatus(true);
                 view.setStatusMsg(msg);
+            }
+        });
+    }
+    private void toggleViewLoading(final boolean enabled) {
+        foregroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.toggleLoading(enabled);
+            }
+        });
+    }
+
+    private void toggleViewDifficultySelect(final boolean enabled) {
+        foregroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.toggleDifficultySelect(enabled);
+            }
+        });
+    }
+
+    private void queueViewStatusForDuration(final String msg, final int durMillis) {
+        foregroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.queueMessageForDuration(new StatusMessage(msg, durMillis));
+            }
+        });
+    }
+    private void queueViewStatusForDuration(final String msg, final int durMillis, final StatusMessage.OnDoneShowingListener listener) {
+        foregroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.queueMessageForDuration(new StatusMessage(msg, durMillis, listener));
             }
         });
     }
@@ -70,10 +130,22 @@ public class ControlPresenter {
     public interface ControlView {
         void connectToBluetooth(CompleteCallback callback);
         void toggleLoading(boolean enabled);
-        void toggleStatus(boolean enabled);
+        void toggleMsgStatus(boolean enabled);
+        void queueMessageForDuration(StatusMessage msg);
         void setStatusMsg(String msg);
+        void toggleDifficultySelect(boolean enabled);
+        void toggleTimer(boolean enabled);
+        void startPlayCounter(int time, int updateInterval);
+        void startUpdateLoop(int updatesPerSecond);
+        void stopUpdateLoop();
     }
     public interface CompleteCallback {
         void complete(boolean status);
+    }
+
+    public enum Difficulty {
+        EASY,
+        MEDIUM,
+        HARD
     }
 }
