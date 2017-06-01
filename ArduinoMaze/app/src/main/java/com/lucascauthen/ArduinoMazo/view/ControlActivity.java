@@ -102,7 +102,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
         Intent intent = getIntent();
         this.address = intent.getStringExtra(ControlPresenter.DEVICE_ADDRESS);
-        presenter.present();
+        //presenter.present();
     }
 
     @Override
@@ -116,6 +116,16 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -228,6 +238,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
             public void onFinish() {
                 presenter.onTimerFinished();
+                timer.setText("0.00");
             }
         }.start();
     }
@@ -257,10 +268,10 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     }
 
     @Override
-    public void sendStartSignal() {
+    public void sendStartSignal(ControlPresenter.Difficulty difficulty) {
         try {
-            byte msg = ControlPresenter.MessageType.START.data;
-            socket.getOutputStream().write(msg);
+            socket.getOutputStream().write(ControlPresenter.MessageType.START.data);
+            socket.getOutputStream().write(difficulty.data);
             socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
         } catch (IOException e) {
             e.printStackTrace();
@@ -279,9 +290,9 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     }
 
     @Override
-    public void sendInputData(byte[] input) {
+    public void sendInputData(byte direction) {
         try {
-            socket.getOutputStream().write(input);
+            socket.getOutputStream().write(direction);
             socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
         } catch (IOException e) {
             e.printStackTrace();
@@ -306,11 +317,11 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
             boolean success = SensorManager.getRotationMatrix(rotationMatrix, inclinationMatrix, gravity, geomagnetic);
             if (success) {
                 SensorManager.getOrientation(rotationMatrix, orientationMatrix);
-                //StringBuilder builder = new StringBuilder();
-                //builder.append("Azimuth:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[0])))
-                //.append("\nPitch:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[1])))
-                //.append("\nRoll:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[2])));
-                //status.setText(builder.toString());
+                StringBuilder builder = new StringBuilder();
+                builder.append("Azimuth:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[0])))
+                .append("\nPitch:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[1])))
+                .append("\nRoll:").append(String.format("%.2f", Math.toDegrees(orientationMatrix[2])));
+                status.setText(builder.toString());
             }
         }
     }

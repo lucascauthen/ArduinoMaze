@@ -68,19 +68,19 @@ public class ControlPresenter {
         final int duration;
         switch(this.difficulty) {
             case EASY:
-                duration = 120000;
+                duration = 20000;
                 break;
             case MEDIUM:
-                duration = 90000;
+                duration = 15000;
                 break;
             case HARD:
-                duration = 45000;
+                duration = 10000;
                 break;
             default:
-                duration = 120000;
+                duration = 10000;
         }
         toggleViewDifficultySelect(false);
-        queueViewStatusForDuration("Ready?!?!", 1000);
+        /*queueViewStatusForDuration("Ready?!?!", 1000);
         queueViewStatusForDuration("Set", 500, new StatusMessage.OnDoneShowingListener() {
             @Override
             public void done() {
@@ -91,6 +91,13 @@ public class ControlPresenter {
                         view.sendStartSignal();
                     }
                 });
+            }
+        });*/
+        view.startPlayCounter(duration, 10);
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.sendStartSignal(ControlPresenter.this.difficulty);
             }
         });
     }
@@ -169,9 +176,9 @@ public class ControlPresenter {
         void startPlayCounter(int time, int updateInterval);
         void startUpdateLoop(int updatesPerSecond);
         void stopUpdateLoop();
-        void sendStartSignal();
+        void sendStartSignal(Difficulty difficulty);
         void sendStopSignal();
-        void sendInputData(byte[] input);
+        void sendInputData(byte direction);
         void displayEndMessage();
     }
     public interface CompleteCallback {
@@ -179,16 +186,26 @@ public class ControlPresenter {
     }
 
     public enum Difficulty {
-        EASY,
-        MEDIUM,
-        HARD
+        EASY((byte)0),
+        MEDIUM((byte)1),
+        HARD((byte)2);
+
+        public byte data;
+        Difficulty(byte data) {
+            this.data = data;
+        }
     }
 
     public enum Direction {
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT
+        NONE((byte)0),
+        UP((byte)1),
+        DOWN((byte)2),
+        LEFT((byte)3),
+        RIGHT((byte)4);
+        public byte data;
+        Direction(byte data) {
+            this.data = data;
+        }
     }
 
     public enum MessageType {
