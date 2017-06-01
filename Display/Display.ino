@@ -1,6 +1,6 @@
 //LED Matrix Test
 #include <Wire.h>
-const int DELAY = 10;
+const int DELAY = 50;
 
 int loopCount = 0;
 
@@ -13,7 +13,9 @@ char color = 'g';
 const int HALF_PIN  = 7;
 bool halfState = LOW;
 
-const int SINK0     = 8;
+const int SINK0  = 8;
+byte playerX = 0;
+byte playerY = 0;
 
 void setup() {
   randomSeed(analogRead(0));
@@ -23,10 +25,11 @@ void setup() {
   Serial.begin(9600);
   //randomMap();  
   Wire.begin(4);
-  Wire.onReceive(
+  Wire.onReceive(receiveEvent);
 }
 
 void loop() {
+  //Serial.print("loop");
   if(colorState == LOW){
     color = 'r';
   } else {
@@ -40,6 +43,7 @@ void loop() {
 
   colorState = !colorState;
   //delayMicroseconds(DELAY);
+  //delay(DELAY);
   if((loopCount + 1) % 2 == 0){
     halfState = !halfState;
   }
@@ -60,7 +64,7 @@ void writeColumn(int column, char color){
     
   }
 //  delayMicroseconds(DELAY);
-
+  delay(DELAY);
   //Reset phase
 //  for(int i = 0; i < (SIZE / 2); i++){
 //    digitalWrite(SINK0 + i, HIGH);
@@ -97,38 +101,66 @@ void setBlankMap(){
 }
 
 void mazeByteDecoder() { //Decodes bytes send from the data Arduino and creates an array
-  for (int row = 0; row < 16; row++) {
+  for (int col = 0; col < 16; col++) {
     unsigned char binary[8];
     byte mask = 128;
     byte receivedByte = Wire.read(); //gets first 8 bits of the row
+    Serial.println(receivedByte);
     for(int i = 0; i < 8; i++) { //Converts byte to bits
       binary[i] = ((receivedByte & (mask >> i)) != 0);
     }
     for (int j = 0; j < 8; j++) { //Puts bits into maze array
-      maze[row][j] = binary[j];
+      maze[j][col] = binary[j];
     }
     receivedByte = Wire.read(); //gets second 8 bits of the row
+    Serial.println(receivedByte);
     for(int i = 0; i < 8; i++) {
       binary[i] = ((receivedByte & (mask >> i)) != 0);
     }
     for (int j = 0; j < 8; j++) { //Puts bits into maze array
-      maze[row][j+7] = binary[j];
+      maze[j+7][col] = binary[j];
     }
   }
 }
 
-void recieveEvent(int howMany){
+void receiveEvent(int howMany){
+  Serial.println("Received data");
   while(Wire.available()){
     byte type = Wire.read();
+    Serial.println(type);
     switch(type){
       case 0://Start signal
         mazeByteDecoder();
+        decode_2();
+        printMapSerial();
         break;
       case 1://Stop signal
+        setBlankMap();
         printMapSerial();
+        break;
       case 2://new player position
-        
-      case 3://
+        int playerXNew = Serial.read();
+        int playerYNew = Serial.read();
+        maze[playerX][playerY] = ' ';
+        maze[playerXNew][playerYNew] = 'g';
+        Serial.print("px: ");
+        Serial.print(playerX);
+        Serial.print(" py: ");
+        Serial.print(playerY);
+        Serial.println();
+        break;
+    }
+  }
+}
+
+void decode_2() {
+  for(int i = 0; i < 16; i++) {
+    for(int j = 0; j < 16; j++) {
+      if(maze[i][j] == 1) {
+        maze[i][j] = 'g';
+      } else {
+        maze[i][j] = 'r';
+      }
     }
   }
 }
