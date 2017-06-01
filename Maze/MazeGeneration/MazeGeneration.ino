@@ -154,19 +154,44 @@ boolean isValidMove(int i, int j){ //takes the coordinates of the next move and 
   return true;
 }
 
-boolean canMoveUp() {
-
+boolean canMoveUp() { //Determines if the player can move up one square
+  if (isEdge(playerX + 1, playerY + 1)){
+    return false;
+  }
+  if (!isValidMove(playerX, playerY + 1)){
+    return false;
+  }
+  return true;
 }
 
-boolean canMoveDown() {
-
+boolean canMoveDown() { //Determines if the player can move down one square
+  if (isEdge(playerX + 1, playerY + 1)){
+    return false;
+  }
+  if (!isValidMove(playerX, playerY - 1)){
+    return false;
+  }
+  return true;
 }
 
-boolean canMoveLeft() {
-
+boolean canMoveLeft() { //Determines if the player can move left one square 
+  if (isEdge(playerX + 1, playerY + 1)){
+    return false;
+  }
+  if (!isValidMove(playerX - 1, playerY)){
+    return false;
+  }
+  return true;
 }
-boolean canMoveRight() {
 
+boolean canMoveRight() { //Determines if the player can move right one square 
+  if (isEdge(playerX + 1, playerY + 1)){
+    return false;
+  }
+  if (!isValidMove(playerX + 1, playerY + 1)){
+    return false;
+  }
+  return true;
 }
 
 void mazePrinter(){ //prints the contents of the maze
@@ -194,9 +219,6 @@ void mazeByteEncoder(){ //Sends contents of the maze over I2C by encoding them t
   }
 }
 
-void mazeByteDecoder(){ //Decodes bytes send from the data Arduino and creates an array
-  byte current1 = Wire.read();
-}
 void mazeByteDecoder() { //Decodes bytes send from the data Arduino and creates an array
   char mazeDecode[16][16];
   for (int row = 0; row < 16; row++) {
