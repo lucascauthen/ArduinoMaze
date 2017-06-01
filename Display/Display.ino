@@ -23,6 +23,7 @@ void setup() {
   Serial.begin(9600);
   //randomMap();  
   Wire.begin(4);
+  Wire.onReceive(
 }
 
 void loop() {
@@ -87,6 +88,14 @@ void randomMap(){
   }
 }
 
+void setBlankMap(){
+  for(int i = 0; i < SIZE; i++){
+    for(int j = 0; j < SIZE; j++){
+      maze[i][j] = ' ';
+    }
+  }
+}
+
 void mazeByteDecoder() { //Decodes bytes send from the data Arduino and creates an array
   for (int row = 0; row < 16; row++) {
     unsigned char binary[8];
@@ -104,6 +113,22 @@ void mazeByteDecoder() { //Decodes bytes send from the data Arduino and creates 
     }
     for (int j = 0; j < 8; j++) { //Puts bits into maze array
       maze[row][j+7] = binary[j];
+    }
+  }
+}
+
+void recieveEvent(int howMany){
+  while(Wire.available()){
+    byte type = Wire.read();
+    switch(type){
+      case 0://Start signal
+        mazeByteDecoder();
+        break;
+      case 1://Stop signal
+        printMapSerial();
+      case 2://new player position
+        
+      case 3://
     }
   }
 }
