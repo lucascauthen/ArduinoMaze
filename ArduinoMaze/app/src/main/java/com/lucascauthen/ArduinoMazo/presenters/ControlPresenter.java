@@ -97,6 +97,7 @@ public class ControlPresenter {
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
+                view.startUpdateLoop(1);
                 view.sendStartSignal(ControlPresenter.this.difficulty);
             }
         });
@@ -106,6 +107,7 @@ public class ControlPresenter {
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
+                view.stopUpdateLoop();
                 view.sendStopSignal();
             }
         });
@@ -115,10 +117,31 @@ public class ControlPresenter {
         this.isBluetoothConnected = false;
     }
 
-    public void newTiltData(final double azimuth, final double pitch, final double roll) {
-        Direction d;
-        int speed;
-        //TODO calculate these values and send to arduino
+    public void newTiltData(final double pitch, final double roll) {
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                double pitch_abs = Math.abs(pitch);
+                double roll_abs = Math.abs(pitch);
+                if(pitch_abs > 30 || roll_abs > 30) {
+                    if(pitch_abs > roll_abs) {
+                        if(pitch > 30) {
+                            view.sendInputData(Direction.LEFT.data);
+                        } else {
+                            view.sendInputData(Direction.RIGHT.data);
+                        }
+                    } else {
+                        if(roll > 30) {
+                            view.sendInputData(Direction.UP.data);
+                        } else {
+                            view.sendInputData(Direction.DOWN.data);
+                        }
+                    }
+                } else {
+                    view.sendInputData(Direction.NONE.data);
+                }
+            }
+        });
     }
 
     private void updateViewMsg(final String msg) {

@@ -249,11 +249,9 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
         Runnable updateLoop = new Runnable() {
             @Override
             public void run() {
-                double azimuth = Math.toDegrees(orientationMatrix[0]);
                 double pitch = Math.toDegrees(orientationMatrix[1]);
                 double roll = Math.toDegrees(orientationMatrix[2]);
-
-
+                presenter.newTiltData(pitch, roll);
                 if (!stopUpdate) {
                     updateHandler.postDelayed(this, 1000 / updatesPerSecond);
                 }
