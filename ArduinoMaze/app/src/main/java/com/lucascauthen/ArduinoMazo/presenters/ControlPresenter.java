@@ -68,19 +68,19 @@ public class ControlPresenter {
         final int duration;
         switch(this.difficulty) {
             case EASY:
-                duration = 120000;
+                duration = 20000;
                 break;
             case MEDIUM:
-                duration = 90000;
+                duration = 15000;
                 break;
             case HARD:
-                duration = 45000;
+                duration = 10000;
                 break;
             default:
-                duration = 120000;
+                duration = 10000;
         }
         toggleViewDifficultySelect(false);
-        queueViewStatusForDuration("Ready?!?!", 1000);
+        /*queueViewStatusForDuration("Ready?!?!", 1000);
         queueViewStatusForDuration("Set", 500, new StatusMessage.OnDoneShowingListener() {
             @Override
             public void done() {
@@ -92,6 +92,14 @@ public class ControlPresenter {
                     }
                 });
             }
+        });*/
+        view.startPlayCounter(duration, 10);
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.startUpdateLoop(1);
+                view.sendStartSignal(ControlPresenter.this.difficulty);
+            }
         });
     }
 
@@ -99,6 +107,7 @@ public class ControlPresenter {
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
+                view.stopUpdateLoop();
                 view.sendStopSignal();
             }
         });
@@ -108,10 +117,31 @@ public class ControlPresenter {
         this.isBluetoothConnected = false;
     }
 
-    public void newTiltData(final double azimuth, final double pitch, final double roll) {
-        Direction d;
-        int speed;
-        //TODO calculate these values and send to arduino
+    public void newTiltData(final double pitch, final double roll) {
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                double pitch_abs = Math.abs(pitch);
+                double roll_abs = Math.abs(pitch);
+                if(pitch_abs > 30 || roll_abs > 30) {
+                    if(pitch_abs > roll_abs) {
+                        if(pitch > 30) {
+                            view.sendInputData(Direction.LEFT.data);
+                        } else {
+                            view.sendInputData(Direction.RIGHT.data);
+                        }
+                    } else {
+                        if(roll > 30) {
+                            view.sendInputData(Direction.UP.data);
+                        } else {
+                            view.sendInputData(Direction.DOWN.data);
+                        }
+                    }
+                } else {
+                    view.sendInputData(Direction.NONE.data);
+                }
+            }
+        });
     }
 
     private void updateViewMsg(final String msg) {
@@ -169,9 +199,9 @@ public class ControlPresenter {
         void startPlayCounter(int time, int updateInterval);
         void startUpdateLoop(int updatesPerSecond);
         void stopUpdateLoop();
-        void sendStartSignal();
+        void sendStartSignal(Difficulty difficulty);
         void sendStopSignal();
-        void sendInputData(byte[] input);
+        void sendInputData(byte direction);
         void displayEndMessage();
     }
     public interface CompleteCallback {
@@ -179,16 +209,26 @@ public class ControlPresenter {
     }
 
     public enum Difficulty {
-        EASY,
-        MEDIUM,
-        HARD
+        EASY((byte)0),
+        MEDIUM((byte)1),
+        HARD((byte)2);
+
+        public byte data;
+        Difficulty(byte data) {
+            this.data = data;
+        }
     }
 
     public enum Direction {
-        UP,
-        DOWN,
-        LEFT,
-        RIGHT
+        NONE((byte)0),
+        UP((byte)1),
+        DOWN((byte)2),
+        LEFT((byte)3),
+        RIGHT((byte)4);
+        public byte data;
+        Direction(byte data) {
+            this.data = data;
+        }
     }
 
     public enum MessageType {
