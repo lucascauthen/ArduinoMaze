@@ -19,6 +19,7 @@ import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -55,8 +56,9 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
     @BindView(R.id.loading) ProgressBar loading;
     @BindView(R.id.status) TextView status;
+    @BindView(R.id.color) Button colorButton;
     @BindView(R.id.difficultyContainer) LinearLayout difficultyContainer;
-    @BindView(R.id.timer) TextView timer;
+
 
     private String address;
 
@@ -73,6 +75,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
     Queue<StatusMessage> msgQueue = new LinkedList<>();
     boolean showingMsg = false;
+    ControlPresenter.Color color;
 
 
     @Override
@@ -102,6 +105,8 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
         Intent intent = getIntent();
         this.address = intent.getStringExtra(ControlPresenter.DEVICE_ADDRESS);
+        color = ControlPresenter.Color.GREEN;
+        colorButton.setText("Set to RED");
         presenter.present();
     }
 
@@ -137,6 +142,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
                 socket = dispositivo.createInsecureRfcommSocketToServiceRecord(DEVICE_UUID);//create a RFCOMM (SPP) connection
                 BluetoothAdapter.getDefaultAdapter().cancelDiscovery();
                 socket.connect();//start connection
+                presenter.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -209,38 +215,12 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     }
 
     @Override
-    public void toggleDifficultySelect(boolean enabled) {
+    public void toggleColorSelect(boolean enabled) {
         if (enabled) {
             AnimationUtils.fadeInFromGone(difficultyContainer, 500);
         } else {
             AnimationUtils.fadeOutToGone(difficultyContainer, 500);
         }
-    }
-
-    @Override
-    public void toggleTimer(boolean enabled) {
-        if (enabled) {
-            timer.setVisibility(View.VISIBLE);
-        } else {
-            timer.setVisibility(GONE);
-        }
-    }
-
-    @Override
-    public void startPlayCounter(final int time, final int updateInterval) {
-        timer.setVisibility(View.VISIBLE);
-        new CountDownTimer(time, updateInterval) {
-
-            @SuppressLint("DefaultLocale")
-            public void onTick(long millisUntilFinished) {
-                timer.setText(String.format("%.2f", (float) millisUntilFinished / 1000.0f));
-            }
-
-            public void onFinish() {
-                presenter.onTimerFinished();
-                timer.setText("0.00");
-            }
-        }.start();
     }
 
     @Override
@@ -267,10 +247,9 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     }
 
     @Override
-    public void sendStartSignal(ControlPresenter.Difficulty difficulty) {
+    public void sendStartSignal() {
         try {
             socket.getOutputStream().write(ControlPresenter.MessageType.START.data);
-            socket.getOutputStream().write(difficulty.data);
             socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
         } catch (IOException e) {
             e.printStackTrace();
@@ -293,15 +272,11 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
         try {
             socket.getOutputStream().write(ControlPresenter.MessageType.INPUT.data);
             socket.getOutputStream().write(direction);
+            socket.getOutputStream().write(color.data);
             socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    public void displayEndMessage() {
-
     }
 
     @SuppressLint("DefaultLocale")
@@ -371,19 +346,18 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
                 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
-    @OnClick(R.id.easyDifficultyButton)
-    void onClickEasy() {
-        presenter.setDifficulty(ControlPresenter.Difficulty.EASY);
-    }
-
-    @OnClick(R.id.mediumDifficultyButton)
-    void onClickMedium() {
-        presenter.setDifficulty(ControlPresenter.Difficulty.MEDIUM);
-    }
-
-    @OnClick(R.id.hardDifficultyButton)
-    void onClickHard() {
-        presenter.setDifficulty(ControlPresenter.Difficulty.HARD);
+    @OnClick(R.id.color)
+    void onClickColor() {
+        if(color == ControlPresenter.Color.GREEN) {
+            color = ControlPresenter.Color.RED;
+            colorButton.setText("Set to CLEAR");
+        } else if(color == ControlPresenter.Color.RED) {
+            color = ControlPresenter.Color.CLEAR;
+            colorButton.setText("Set to GREEN");
+        } else {
+            color = ControlPresenter.Color.GREEN;
+            colorButton.setText("Set to RED");
+        }
     }
 }
 

@@ -1,6 +1,5 @@
 package com.lucascauthen.ArduinoMazo.presenters;
 
-import android.util.Log;
 import com.lucascauthen.ArduinoMazo.utility.BackgroundExecutor;
 import com.lucascauthen.ArduinoMazo.utility.ForegroundExecutor;
 import com.lucascauthen.ArduinoMazo.utility.NullObject;
@@ -44,10 +43,8 @@ public class ControlPresenter {
                     public void complete(boolean status) {
                         ControlPresenter.this.isBluetoothConnected = status;
                         if(status) {
-                            queueViewStatusForDuration("Connected!!", 1500);
-                            queueViewStatusForDuration("Select a game mode!", 5000);
                             toggleViewLoading(false);
-                            toggleViewDifficultySelect(true);
+                            showColorSelect(true);
                         } else {
                             updateViewMsg("Error!!!");
                         }
@@ -63,57 +60,6 @@ public class ControlPresenter {
 
     public boolean isBluetoothConnected() {
         return isBluetoothConnected;
-    }
-
-    public void setDifficulty(Difficulty difficulty) {
-        this.difficulty = difficulty;
-        queueViewStatusForDuration("Go!", 200);
-        final int duration;
-        switch(this.difficulty) {
-            case EASY:
-                duration = 2000000;
-                break;
-            case MEDIUM:
-                duration = 15000;
-                break;
-            case HARD:
-                duration = 10000;
-                break;
-            default:
-                duration = 10000;
-        }
-        toggleViewDifficultySelect(false);
-        /*queueViewStatusForDuration("Ready?!?!", 1000);
-        queueViewStatusForDuration("Set", 500, new StatusMessage.OnDoneShowingListener() {
-            @Override
-            public void done() {
-                view.startPlayCounter(duration, 500);
-                backgroundExecutor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        view.sendStartSignal();
-                    }
-                });
-            }
-        });*/
-        view.startPlayCounter(duration, 10);
-        backgroundExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                view.startUpdateLoop(30);
-                view.sendStartSignal(ControlPresenter.this.difficulty);
-            }
-        });
-    }
-
-    public void onTimerFinished() {
-        backgroundExecutor.execute(new Runnable() {
-            @Override
-            public void run() {
-                view.stopUpdateLoop();
-                view.sendStopSignal();
-            }
-        });
     }
 
     public void disconnect() {
@@ -149,6 +95,15 @@ public class ControlPresenter {
             }
         });
     }
+    public void start() {
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.startUpdateLoop(30);
+                view.sendStartSignal();
+            }
+        });
+    }
 
     private void updateViewMsg(final String msg) {
         foregroundExecutor.execute(new Runnable() {
@@ -168,11 +123,11 @@ public class ControlPresenter {
         });
     }
 
-    private void toggleViewDifficultySelect(final boolean enabled) {
+    private void showColorSelect(final boolean enabled) {
         foregroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                view.toggleDifficultySelect(enabled);
+                view.toggleColorSelect(enabled);
             }
         });
     }
@@ -200,15 +155,13 @@ public class ControlPresenter {
         void toggleMsgStatus(boolean enabled);
         void queueMessageForDuration(StatusMessage msg);
         void setStatusMsg(String msg);
-        void toggleDifficultySelect(boolean enabled);
-        void toggleTimer(boolean enabled);
-        void startPlayCounter(int time, int updateInterval);
+        void toggleColorSelect(boolean enabled);
+
         void startUpdateLoop(int updatesPerSecond);
         void stopUpdateLoop();
-        void sendStartSignal(Difficulty difficulty);
+        void sendStartSignal();
         void sendStopSignal();
         void sendInputData(byte direction);
-        void displayEndMessage();
     }
     public interface CompleteCallback {
         void complete(boolean status);
@@ -245,6 +198,16 @@ public class ControlPresenter {
 
         public byte data;
         MessageType(byte data) {
+            this.data = data;
+        }
+    }
+
+    public enum Color {
+        RED((byte)0),
+        GREEN((byte)1),
+        CLEAR((byte)2);
+        public byte data;
+        Color(byte data) {
             this.data = data;
         }
     }

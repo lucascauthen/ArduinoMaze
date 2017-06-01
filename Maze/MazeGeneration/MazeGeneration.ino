@@ -1,6 +1,6 @@
 #include <Wire.h>
 const int SIZE = 16;
-bool maze[16][16];
+char maze[16][16];
 int path = 1;
 int wall = 0;
 int xMax = 15;
@@ -10,10 +10,9 @@ int xMin = 0;
 
 byte playerX = 0;
 byte playerY = 0;
-byte last_playerX = 0;
-byte last_playerY = 0;
+byte playerColor = 'g';
 
-const int refreshInterval = 60;
+const int refreshInterval = 200;
 
 unsigned long lastRefreshTime;
 byte input_buffer[20];
@@ -29,7 +28,7 @@ bool halfState = LOW;
 
 const int SINK0  = 8;
 
-const int DELAY = 50;
+const int DELAY = 0;
 
 int loopCount = 0;
 
@@ -47,6 +46,7 @@ void loop() {
 
   if ((now - lastRefreshTime) > refreshInterval) {
     if(Serial.available() > 0) {
+      Serial.println("Reading...");
       if(inputComplete) {
         input_buffer[lastIndex++] = Serial.read();
         inputComplete = false;
@@ -79,7 +79,7 @@ void loop() {
 
   colorState = !colorState;
   //delayMicroseconds(DELAY);
-  //delay(DELAY);
+  delay(DELAY);
   if((loopCount + 1) % 2 == 0){
     halfState = !halfState;
   }
@@ -94,7 +94,7 @@ void writeColumn(int column, char color){
   }
   
   for(int i = 0; i < (SIZE / 2); i++){
-    if(color == maze[column][i]){
+    if(color == maze[column][i + (halfState * 8)]){
       digitalWrite(SINK0 + i, HIGH);
     } else {
       digitalWrite(SINK0 + i, LOW);
@@ -102,7 +102,7 @@ void writeColumn(int column, char color){
     
   }
 //  delayMicroseconds(DELAY);
-  delay(DELAY);
+  //delay(DELAY);
   //Reset phase
 //  for(int i = 0; i < (SIZE / 2); i++){
 //    digitalWrite(SINK0 + i, HIGH);
@@ -112,6 +112,11 @@ void writeColumn(int column, char color){
     digitalWrite(i, LOW);
   }*/
 }
+
+void draw() {
+  
+}
+
 void randomMap(){
   for(int i = 0; i < SIZE; i++){
     for(int j = 0; j < SIZE; j++){
@@ -140,9 +145,11 @@ void setBlankMap(){
 void handleInput() {
   switch(input_buffer[0]) {
     case 0: //Start singal
-      mazeCreator(getDifficultyFromByte(input_buffer[1]));
-      encode_to_rg();
-      mazePrinter();
+      playerX = 0;
+      playerY = 0;
+      //encode_to_rg();
+      //mazePrinter();
+      setBlankMap();
       break;
     case 1: //Stop signal
       setBlankMap();
@@ -150,6 +157,14 @@ void handleInput() {
     case 2: //New input signal
       //Wire.write(2);
       byte inDirection = input_buffer[1];
+      byte color = input_buffer[2];
+      if(color == 0) {
+        playerColor = 'g';
+      } else if(color == 1) {
+        playerColor = 'r';
+      } else {
+        playerColor = ' ';
+      }
       curDirection = inDirection;
       Serial.print("New Direction: ");
       switch(inDirection) {
@@ -185,7 +200,7 @@ void updateCoordinates() {
       break;
     case 3: //Left
       if(canMoveLeft()) {
-        playerY -= 1;
+        playerX -= 1;
         newDirection = 3;
       }
       break;
@@ -197,8 +212,7 @@ void updateCoordinates() {
       break;
   }
   if(newDirection != 0) {
-    maze[last_playerX][last_playerY] = ' ';
-    maze[playerX][playerY] = 'g';
+    maze[playerX][playerY] = playerColor;
   }
 }
 
@@ -206,9 +220,9 @@ void encode_to_rg() {
   for(int i = 0; i < 16; i++) {
     for(int j = 0; j < 16; j++) {
       if(maze[i][j] == 1) {
-        maze[i][j] = 'r';
-      } else {
         maze[i][j] = ' ';
+      } else {
+        maze[i][j] = 'r';
       }
     }
   }
