@@ -1,11 +1,11 @@
 //LED Matrix Test
-
+#include <Wire.h>
 const int DELAY = 10;
 
 int loopCount = 0;
 
 const int SIZE = 16;
-char grid[SIZE][SIZE];
+char maze[SIZE][SIZE];
 
 const int COLOR_PIN = 6;
 bool colorState = LOW;
@@ -21,7 +21,8 @@ void setup() {
     pinMode(i, OUTPUT);
   }
   Serial.begin(9600);
-  randomMap();  
+  //randomMap();  
+  Wire.begin(4);
 }
 
 void loop() {
@@ -37,7 +38,7 @@ void loop() {
   }
 
   colorState = !colorState;
-  delayMicroseconds(DELAY);
+  //delayMicroseconds(DELAY);
   if((loopCount + 1) % 2 == 0){
     halfState = !halfState;
   }
@@ -50,7 +51,7 @@ void writeColumn(int column, char color){
   }
   
   for(int i = 0; i < (SIZE / 2); i++){
-    if(color == grid[column][i]){
+    if(color == maze[column][i]){
       digitalWrite(SINK0 + i, HIGH);
     } else {
       digitalWrite(SINK0 + i, LOW);
@@ -74,13 +75,43 @@ void randomMap(){
     for(int j = 0; j < SIZE; j++){
       int number = random(3);
       if(number == 2) {
-        grid[i][j] = 'r';
+        maze[i][j] = 'r';
       } else if(number == 1){
-        grid[i][j] = 'g';
+        maze[i][j] = 'g';
       } else{
-        grid[i][j] = ' ';
+        maze[i][j] = ' ';
       }
-      Serial.print(grid[i][j]);
+      Serial.print(maze[i][j]);
+    }
+    Serial.println();
+  }
+}
+
+void mazeByteDecoder() { //Decodes bytes send from the data Arduino and creates an array
+  for (int row = 0; row < 16; row++) {
+    unsigned char binary[8];
+    byte mask = 128;
+    byte receivedByte = Wire.read(); //gets first 8 bits of the row
+    for(int i = 0; i < 8; i++) { //Converts byte to bits
+      binary[i] = ((receivedByte & (mask >> i)) != 0);
+    }
+    for (int j = 0; j < 8; j++) { //Puts bits into maze array
+      maze[row][j] = binary[j];
+    }
+    receivedByte = Wire.read(); //gets second 8 bits of the row
+    for(int i = 0; i < 8; i++) {
+      binary[i] = ((receivedByte & (mask >> i)) != 0);
+    }
+    for (int j = 0; j < 8; j++) { //Puts bits into maze array
+      maze[row][j+7] = binary[j];
+    }
+  }
+}
+
+void printMapSerial(){
+  for(int i = 0; i < SIZE; i++){
+    for(int j = 0; j < SIZE; j++){
+      Serial.print(maze[i][j]);
     }
     Serial.println();
   }
