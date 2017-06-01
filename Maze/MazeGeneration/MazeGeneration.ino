@@ -194,6 +194,13 @@ boolean canMoveRight() { //Determines if the player can move right one square
   return true;
 }
 
+boolean gameWon(){
+  if (playerY == yMax){
+    return true;
+  }
+  return false;
+}
+
 void mazePrinter(){ //prints the contents of the maze
  for (int i = 0; i < 16; i++){
     for (int j = 0; j < 16; j++){
