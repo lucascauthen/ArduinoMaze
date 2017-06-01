@@ -1,5 +1,6 @@
 package com.lucascauthen.ArduinoMazo.presenters;
 
+import android.util.Log;
 import com.lucascauthen.ArduinoMazo.utility.BackgroundExecutor;
 import com.lucascauthen.ArduinoMazo.utility.ForegroundExecutor;
 import com.lucascauthen.ArduinoMazo.utility.NullObject;
@@ -16,6 +17,8 @@ public class ControlPresenter {
     private boolean isBluetoothConnected = false;
 
     private Difficulty difficulty;
+
+    private Direction lastTilt = Direction.NONE;
 
     public ControlPresenter() {
         this.foregroundExecutor = new ForegroundExecutor();
@@ -68,7 +71,7 @@ public class ControlPresenter {
         final int duration;
         switch(this.difficulty) {
             case EASY:
-                duration = 20000;
+                duration = 2000000;
                 break;
             case MEDIUM:
                 duration = 15000;
@@ -97,7 +100,7 @@ public class ControlPresenter {
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
-                view.startUpdateLoop(1);
+                view.startUpdateLoop(30);
                 view.sendStartSignal(ControlPresenter.this.difficulty);
             }
         });
@@ -121,24 +124,27 @@ public class ControlPresenter {
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
+                Direction newDirection = Direction.NONE;
                 double pitch_abs = Math.abs(pitch);
-                double roll_abs = Math.abs(pitch);
-                if(pitch_abs > 30 || roll_abs > 30) {
+                double roll_abs = Math.abs(roll);
+                if(pitch_abs > 30.0 || roll_abs > 30.0) {
                     if(pitch_abs > roll_abs) {
-                        if(pitch > 30) {
-                            view.sendInputData(Direction.LEFT.data);
+                        if(pitch > 30.0) {
+                            newDirection = Direction.LEFT;
                         } else {
-                            view.sendInputData(Direction.RIGHT.data);
+                            newDirection = Direction.RIGHT;
                         }
                     } else {
-                        if(roll > 30) {
-                            view.sendInputData(Direction.UP.data);
+                        if(roll > 30.0) {
+                            newDirection = Direction.UP;
                         } else {
-                            view.sendInputData(Direction.DOWN.data);
+                            newDirection = Direction.DOWN;
                         }
                     }
-                } else {
-                    view.sendInputData(Direction.NONE.data);
+                }
+                if(newDirection != lastTilt) {
+                    lastTilt = newDirection;
+                    view.sendInputData(newDirection.data);
                 }
             }
         });

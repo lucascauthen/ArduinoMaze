@@ -102,14 +102,14 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
         Intent intent = getIntent();
         this.address = intent.getStringExtra(ControlPresenter.DEVICE_ADDRESS);
-        //presenter.present();
+        presenter.present();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, accelerometerSensor, 100000);
-        sensorManager.registerListener(this, magneticSensor, 100000);
+        sensorManager.registerListener(this, accelerometerSensor, 1000/60);
+        sensorManager.registerListener(this, magneticSensor, 1000/60);
     }
 
     @Override
@@ -257,8 +257,9 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
                 }
             }
         };
-
+        updateHandler.postDelayed(updateLoop, 1000 / updatesPerSecond);
     }
+
 
     @Override
     public void stopUpdateLoop() {
@@ -290,6 +291,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     @Override
     public void sendInputData(byte direction) {
         try {
+            socket.getOutputStream().write(ControlPresenter.MessageType.INPUT.data);
             socket.getOutputStream().write(direction);
             socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
         } catch (IOException e) {
