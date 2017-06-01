@@ -64,23 +64,54 @@ public class ControlPresenter {
 
     public void setDifficulty(Difficulty difficulty) {
         this.difficulty = difficulty;
+        queueViewStatusForDuration("Go!", 200);
+        final int duration;
+        switch(this.difficulty) {
+            case EASY:
+                duration = 120000;
+                break;
+            case MEDIUM:
+                duration = 90000;
+                break;
+            case HARD:
+                duration = 45000;
+                break;
+            default:
+                duration = 120000;
+        }
         toggleViewDifficultySelect(false);
         queueViewStatusForDuration("Ready?!?!", 1000);
         queueViewStatusForDuration("Set", 500, new StatusMessage.OnDoneShowingListener() {
             @Override
             public void done() {
-                //Start playing
+                view.startPlayCounter(duration, 500);
+                backgroundExecutor.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        view.sendStartSignal();
+                    }
+                });
             }
         });
-        queueViewStatusForDuration("Go!", 200);
     }
 
     public void onTimerFinished() {
-
+        backgroundExecutor.execute(new Runnable() {
+            @Override
+            public void run() {
+                view.sendStopSignal();
+            }
+        });
     }
 
     public void disconnect() {
         this.isBluetoothConnected = false;
+    }
+
+    public void newTiltData(final double azimuth, final double pitch, final double roll) {
+        Direction d;
+        int speed;
+        //TODO calculate these values and send to arduino
     }
 
     private void updateViewMsg(final String msg) {
@@ -138,6 +169,10 @@ public class ControlPresenter {
         void startPlayCounter(int time, int updateInterval);
         void startUpdateLoop(int updatesPerSecond);
         void stopUpdateLoop();
+        void sendStartSignal();
+        void sendStopSignal();
+        void sendInputData(byte[] input);
+        void displayEndMessage();
     }
     public interface CompleteCallback {
         void complete(boolean status);
@@ -147,5 +182,24 @@ public class ControlPresenter {
         EASY,
         MEDIUM,
         HARD
+    }
+
+    public enum Direction {
+        UP,
+        DOWN,
+        LEFT,
+        RIGHT
+    }
+
+    public enum MessageType {
+        START((byte)0),
+        STOP((byte)1),
+        INPUT((byte)2),
+        MESSAGE_SUFFIX((byte)255);
+
+        public byte data;
+        MessageType(byte data) {
+            this.data = data;
+        }
     }
 }

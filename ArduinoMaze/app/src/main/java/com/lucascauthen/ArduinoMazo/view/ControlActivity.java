@@ -31,6 +31,7 @@ import com.lucascauthen.ArduinoMazo.presenters.StatusMessage;
 import com.lucascauthen.ArduinoMazo.utility.AnimationUtils;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.UUID;
@@ -217,6 +218,7 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
 
     @Override
     public void startPlayCounter(final int time, final int updateInterval) {
+        timer.setVisibility(View.VISIBLE);
         new CountDownTimer(time, updateInterval) {
 
             @SuppressLint("DefaultLocale")
@@ -236,6 +238,10 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
         Runnable updateLoop = new Runnable() {
             @Override
             public void run() {
+                double azimuth = Math.toDegrees(orientationMatrix[0]);
+                double pitch = Math.toDegrees(orientationMatrix[1]);
+                double roll = Math.toDegrees(orientationMatrix[2]);
+
 
                 if (!stopUpdate) {
                     updateHandler.postDelayed(this, 1000 / updatesPerSecond);
@@ -248,6 +254,43 @@ public class ControlActivity extends AppCompatActivity implements ControlPresent
     @Override
     public void stopUpdateLoop() {
         stopUpdate = true;
+    }
+
+    @Override
+    public void sendStartSignal() {
+        try {
+            byte msg = ControlPresenter.MessageType.START.data;
+            socket.getOutputStream().write(msg);
+            socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void sendStopSignal() {
+        try {
+            byte msg = ControlPresenter.MessageType.STOP.data;
+            socket.getOutputStream().write(msg);
+            socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void sendInputData(byte[] input) {
+        try {
+            socket.getOutputStream().write(input);
+            socket.getOutputStream().write(ControlPresenter.MessageType.MESSAGE_SUFFIX.data);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void displayEndMessage() {
+
     }
 
     @SuppressLint("DefaultLocale")
